@@ -260,7 +260,7 @@ gst_timeshift_src_seek (GstBaseSrc * src, GstSegment * segment)
 static gboolean
 gst_timeshift_src_event (GstBaseSrc * src, GstEvent * event)
 {
-  GstTimeShiftSrc *appsrc = GST_TIMESHIFT_SRC (src);
+  GstTimeShiftSrc *timeshiftsrc = GST_TIMESHIFT_SRC (src);
 
   switch (GST_EVENT_TYPE (event)) {
     case GST_EVENT_SEEK:
@@ -286,13 +286,13 @@ gst_timeshift_src_event (GstBaseSrc * src, GstEvent * event)
             (current_rate < 0 && rate > 0) ||
             start_type != GST_SEEK_TYPE_NONE ||
             stop_type != GST_SEEK_TYPE_NONE || (flags & GST_SEEK_FLAG_FLUSH)) {
-          GST_ERROR_OBJECT (appsrc,
+          GST_ERROR_OBJECT (timeshiftsrc,
               "Instant rate change seeks only supported in the "
               "same direction, without flushing and position change");
           return FALSE;
         }
 
-        GST_DEBUG_OBJECT (appsrc,
+        GST_DEBUG_OBJECT (timeshiftsrc,
             "Handling instant rate change from %g to %g", current_rate, rate);
 
         GstEvent *ev = gst_event_new_instant_rate_change (rate / current_rate,
