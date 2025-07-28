@@ -61,13 +61,13 @@ gst_timeshift_src_class_init (GstTimeShiftSrcClass * klass)
   g_object_class_install_property (gobject_class, PROP_SINK,
       g_param_spec_object ("sink", "Sink",
           "The GstTimeShiftSink element to link to",
-          GST_TYPE_TIMESHIFT_SINK,
-          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+          GST_TYPE_TIMESHIFT_SINK, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   basesrc_class->do_seek = GST_DEBUG_FUNCPTR (gst_timeshift_src_seek);
   basesrc_class->event = GST_DEBUG_FUNCPTR (gst_timeshift_src_event);
   basesrc_class->unlock = GST_DEBUG_FUNCPTR (gst_timeshift_src_unlock);
-  basesrc_class->unlock_stop = GST_DEBUG_FUNCPTR (gst_timeshift_src_unlock_stop);
+  basesrc_class->unlock_stop =
+      GST_DEBUG_FUNCPTR (gst_timeshift_src_unlock_stop);
   basesrc_class->query = GST_DEBUG_FUNCPTR (gst_timeshift_src_query);
   basesrc_class->is_seekable =
       GST_DEBUG_FUNCPTR (gst_timeshift_src_is_seekable);
@@ -75,8 +75,8 @@ gst_timeshift_src_class_init (GstTimeShiftSrcClass * klass)
 
   gst_element_class_set_static_metadata (GST_ELEMENT_CLASS (klass),
       "TimeShift Source", "Source/TimeShift",
-      "Provides a timeshifted stream from a GstTimeShiftSink",
-      "Your Name <your.email@example.com>");
+      "Provides a seekable timeshifted stream from the timestamped buffers given to GstTimeShiftSink",
+      "Lluc Simó Margalef <lsimmar@upv.es>");
 
   gst_element_class_add_pad_template (GST_ELEMENT_CLASS (klass),
       gst_pad_template_new ("src", GST_PAD_SRC, GST_PAD_ALWAYS,
@@ -190,7 +190,7 @@ seek_data (TimeShiftState * ts_state, guint64 offset)
       return TRUE;
     }
     g_mutex_unlock (&ts_state->ring_buffer.mutex);
-    GST_WARNING_OBJECT(ts_state, "Ring buffer is empty, cannot seek.");
+    GST_WARNING_OBJECT (ts_state, "Ring buffer is empty, cannot seek.");
     return FALSE;
   }
 
@@ -204,9 +204,9 @@ seek_data (TimeShiftState * ts_state, guint64 offset)
               ring_buffer.head + RING_BUFFER_SIZE - 1) % RING_BUFFER_SIZE]);
 
   if (offset < first_pts || offset > last_pts) {
-    GST_WARNING_OBJECT(ts_state, "Seek out of range. Requested %" G_GUINT64_FORMAT
-        ", available %" G_GUINT64_FORMAT " - %" G_GUINT64_FORMAT,
-        offset, first_pts, last_pts);
+    GST_WARNING_OBJECT (ts_state,
+        "Seek out of range. Requested %" G_GUINT64_FORMAT ", available %"
+        G_GUINT64_FORMAT " - %" G_GUINT64_FORMAT, offset, first_pts, last_pts);
     g_mutex_unlock (&ts_state->ring_buffer.mutex);
     return FALSE;
   }
@@ -231,7 +231,8 @@ seek_data (TimeShiftState * ts_state, guint64 offset)
   g_mutex_unlock (&ts_state->ring_buffer.mutex);
 
   if (found == 0) {
-    GST_WARNING_OBJECT(ts_state, "Could not find a suitable buffer to seek to.");
+    GST_WARNING_OBJECT (ts_state,
+        "Could not find a suitable buffer to seek to.");
   }
 
   return found > 0;
@@ -276,7 +277,7 @@ gst_timeshift_src_event (GstBaseSrc * src, GstEvent * event)
 
       if (flags & GST_SEEK_FLAG_INSTANT_RATE_CHANGE) {
 
-        current_rate = GST_BASE_SRC_CAST(src)->segment.rate;
+        current_rate = GST_BASE_SRC_CAST (src)->segment.rate;
 
         /* instant rate change only supported if direction does not change. All
          * other requirements are already checked before creating the seek event

@@ -34,6 +34,7 @@ typedef struct _TimeShiftState
 void ring_buffer_init (RingBuffer * ring_buffer);
 void ring_buffer_destroy (RingBuffer * ring_buffer);
 void ring_buffer_push (TimeShiftState * ts_state, GstBuffer * buffer);
-GstBuffer *ring_buffer_read (TimeShiftState * ts_state, guint64 absolute_position);
+GstBuffer *ring_buffer_read (TimeShiftState * ts_state,
+    guint64 absolute_position);
 
 #endif // __GST_TIMESHIFT_H__

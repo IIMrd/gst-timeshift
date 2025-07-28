@@ -61,5 +61,7 @@ plugin_init (GstPlugin * plugin)
 
   return TRUE;
 }
-GST_PLUGIN_DEFINE (GST_VERSION_MAJOR, GST_VERSION_MINOR, timeshift, "A plugin for timeshifting GStreamer pipelines", plugin_init, "1.0", "LGPL", "gst-timeshift",
-    "https://github.com/acrilique/gst-timeshift")
+
+GST_PLUGIN_DEFINE (GST_VERSION_MAJOR, GST_VERSION_MINOR, timeshift,
+    "A plugin for timeshifting GStreamer pipelines", plugin_init, "1.0", "LGPL",
+    "gst-timeshift", "https://github.com/acrilique/gst-timeshift")

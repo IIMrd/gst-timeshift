@@ -6,7 +6,8 @@ GST_DEBUG_CATEGORY_STATIC (gst_timeshift_sink_debug);
 #define gst_timeshift_sink_parent_class parent_class
 G_DEFINE_TYPE (GstTimeShiftSink, gst_timeshift_sink, GST_TYPE_BASE_SINK);
 
-static GstFlowReturn gst_timeshift_sink_render (GstBaseSink * sink, GstBuffer * buffer);
+static GstFlowReturn gst_timeshift_sink_render (GstBaseSink * sink,
+    GstBuffer * buffer);
 
 static void
 gst_timeshift_sink_init (GstTimeShiftSink * self)
@@ -42,7 +43,7 @@ gst_timeshift_sink_class_init (GstTimeShiftSinkClass * klass)
   gst_element_class_set_static_metadata (GST_ELEMENT_CLASS (klass),
       "TimeShift Sink", "Sink/TimeShift",
       "Receives data and stores it in a ring buffer for timeshifting",
-      "Your Name <your.email@example.com>");
+      "Lluc Simó Margalef <lsimmar@upv.es>");
 
   gst_element_class_add_pad_template (GST_ELEMENT_CLASS (klass),
       gst_pad_template_new ("sink", GST_PAD_SINK, GST_PAD_ALWAYS,
