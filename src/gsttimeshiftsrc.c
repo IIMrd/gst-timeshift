@@ -178,8 +178,9 @@ gst_timeshift_src_unlock_stop (GstBaseSrc * src)
 }
 
 gboolean
-seek_data (TimeShiftState * ts_state, guint64 offset)
+seek_data (GstTimeShiftSrc *self, guint64 offset)
 {
+  TimeShiftState *ts_state = self->sink->state;
   g_mutex_lock (&ts_state->ring_buffer.mutex);
 
   if (ts_state->ring_buffer.count == 0) {
@@ -190,21 +191,35 @@ seek_data (TimeShiftState * ts_state, guint64 offset)
       return TRUE;
     }
     g_mutex_unlock (&ts_state->ring_buffer.mutex);
-    GST_WARNING_OBJECT (ts_state, "Ring buffer is empty, cannot seek.");
+    GST_WARNING_OBJECT (self, "Ring buffer is empty, cannot seek.");
     return FALSE;
   }
 
   guint64 first_available_pos =
       ts_state->total_buffers_written - ts_state->ring_buffer.count;
-  guint64 first_pts =
-      GST_BUFFER_PTS (ts_state->ring_buffer.buffers[ts_state->ring_buffer.
-          tail]);
-  guint64 last_pts =
-      GST_BUFFER_PTS (ts_state->ring_buffer.buffers[(ts_state->
-              ring_buffer.head + RING_BUFFER_SIZE - 1) % RING_BUFFER_SIZE]);
+  GstBuffer *tail_buf =
+      ts_state->ring_buffer.buffers[ts_state->ring_buffer.tail];
+  GstBuffer *head_buf =
+      ts_state->ring_buffer.buffers[(ts_state->ring_buffer.head +
+          RING_BUFFER_SIZE - 1) % RING_BUFFER_SIZE];
+
+  if (!tail_buf || !GST_BUFFER_PTS_IS_VALID (tail_buf) || !head_buf
+      || !GST_BUFFER_PTS_IS_VALID (head_buf)) {
+    GST_WARNING_OBJECT (self,
+        "Cannot seek, buffer boundaries have invalid PTS.");
+    g_mutex_unlock (&ts_state->ring_buffer.mutex);
+    return FALSE;
+  }
+
+  guint64 first_pts = GST_BUFFER_PTS (tail_buf);
+  guint64 last_pts = GST_BUFFER_PTS (head_buf);
+
+  GST_DEBUG_OBJECT (self,
+      "Seeking to %" G_GUINT64_FORMAT ", available range: %" G_GUINT64_FORMAT
+      " - %" G_GUINT64_FORMAT, offset, first_pts, last_pts);
 
   if (offset < first_pts || offset > last_pts) {
-    GST_WARNING_OBJECT (ts_state,
+    GST_WARNING_OBJECT (self,
         "Seek out of range. Requested %" G_GUINT64_FORMAT ", available %"
         G_GUINT64_FORMAT " - %" G_GUINT64_FORMAT, offset, first_pts, last_pts);
     g_mutex_unlock (&ts_state->ring_buffer.mutex);
@@ -221,7 +236,7 @@ seek_data (TimeShiftState * ts_state, guint64 offset)
         GST_BUFFER_PTS (buffer) <= offset &&
         !GST_BUFFER_FLAG_IS_SET (buffer, GST_BUFFER_FLAG_DELTA_UNIT)) {
       ts_state->playback_position = first_available_pos + i;
-      GST_DEBUG_OBJECT (ts_state, "Found keyframe with PTS %" G_GUINT64_FORMAT
+      GST_DEBUG_OBJECT (self, "Found keyframe with PTS %" G_GUINT64_FORMAT
           " at absolute position %" G_GUINT64_FORMAT " for seek",
           GST_BUFFER_PTS (buffer), ts_state->playback_position);
       if (++found >= 3)
@@ -231,7 +246,7 @@ seek_data (TimeShiftState * ts_state, guint64 offset)
   g_mutex_unlock (&ts_state->ring_buffer.mutex);
 
   if (found == 0) {
-    GST_WARNING_OBJECT (ts_state,
+    GST_WARNING_OBJECT (self,
         "Could not find a suitable buffer to seek to.");
   }
 
@@ -242,13 +257,12 @@ static gboolean
 gst_timeshift_src_seek (GstBaseSrc * src, GstSegment * segment)
 {
   GstTimeShiftSrc *self = GST_TIMESHIFT_SRC (src);
-  TimeShiftState *ts_state = self->sink->state;
   gboolean ret = FALSE;
 
   GST_DEBUG_OBJECT (self, "seeking to %" GST_TIME_FORMAT,
       GST_TIME_ARGS (segment->start));
 
-  ret = seek_data (ts_state, segment->start);
+  ret = seek_data (self, segment->start);
   if (ret) {
     self->discont = TRUE;
     gst_segment_copy_into (segment, &self->segment);
@@ -329,12 +343,40 @@ gst_timeshift_src_query (GstBaseSrc * src, GstQuery * query)
       break;
     }
     case GST_QUERY_SEEKING:
+    {
+      guint64 start, end;
       gst_query_parse_seeking (query, &format, NULL, NULL, NULL);
       if (format == GST_FORMAT_TIME) {
-        gst_query_set_seeking (query, format, TRUE, 0, -1);
+        g_mutex_lock (&self->sink->state->ring_buffer.mutex);
+        if (self->sink->state->ring_buffer.count > 0) {
+          GstBuffer *tail_buf =
+              self->sink->state->ring_buffer.
+              buffers[self->sink->state->ring_buffer.tail];
+          GstBuffer *head_buf =
+              self->sink->state->ring_buffer.buffers[(self->sink->state->
+                  ring_buffer.head + RING_BUFFER_SIZE -
+                  1) % RING_BUFFER_SIZE];
+          if (tail_buf && GST_BUFFER_PTS_IS_VALID (tail_buf) && head_buf
+              && GST_BUFFER_PTS_IS_VALID (head_buf)) {
+            start = GST_BUFFER_PTS (tail_buf);
+            end = GST_BUFFER_PTS (head_buf);
+            res = TRUE;
+          } else {
+            start = 0;
+            end = -1;
+            res = FALSE;
+          }
+        } else {
+          start = 0;
+          end = -1;
+          res = FALSE;
+        }
+        g_mutex_unlock (&self->sink->state->ring_buffer.mutex);
+        gst_query_set_seeking (query, format, res, start, end);
         res = TRUE;
       }
       break;
+    }
     case GST_QUERY_SCHEDULING:
       gst_query_set_scheduling (query, GST_SCHEDULING_FLAG_SEEKABLE, 1, -1, 0);
       gst_query_add_scheduling_mode (query, GST_PAD_MODE_PUSH);

@@ -3,7 +3,7 @@
 
 #include <gst/gst.h>
 
-#define RING_BUFFER_SIZE 2000   // 2000 buffers (GstBuffer)
+#define RING_BUFFER_SIZE 3000   // 3000 buffers (GstBuffer)
 
 /**
  * structures
