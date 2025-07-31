@@ -94,8 +94,16 @@ gst_timeshift_src_set_property (GObject * object, guint prop_id,
 
   switch (prop_id) {
     case PROP_SINK:
-      self->sink = g_value_get_object (value);
+    {
+      GstTimeShiftSink *new_sink = g_value_get_object (value);
+      if (new_sink != self->sink) {
+        if (self->sink) {
+          g_object_unref (self->sink);
+        }
+        self->sink = new_sink ? g_object_ref (new_sink) : NULL;
+      }
       break;
+    }
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -127,6 +135,11 @@ gst_timeshift_src_create (GstBaseSrc * src, guint64 offset, guint size,
 
   if (self->flushing) {
     return GST_FLOW_FLUSHING;
+  }
+
+  if (!ts_state) {
+    GST_ERROR_OBJECT (self, "TimeShiftState is NULL.");
+    return GST_FLOW_ERROR;
   }
 
   g_mutex_lock (&ts_state->ring_buffer.mutex);
