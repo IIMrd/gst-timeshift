@@ -1,3 +1,23 @@
+/*
+ *  gst-timeshift - A GStreamer plugin for timeshifting media streams
+ *  Copyright (C) 2025 Lluc Simó Margalef <lsimmar@upv.es>, Immersive
+ *    Interactive Media (IIM) R&D group at Universitat Politècnica de València.
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2.1 of the License, or (at your option) any later version.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; if not, write to the Free Software
+ *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
 #include "gsttimeshiftsrc.h"
 #include "gsttimeshift.h"
 
@@ -191,7 +211,7 @@ gst_timeshift_src_unlock_stop (GstBaseSrc * src)
 }
 
 gboolean
-seek_data (GstTimeShiftSrc *self, guint64 offset)
+seek_data (GstTimeShiftSrc * self, guint64 offset)
 {
   TimeShiftState *ts_state = self->sink->state;
   g_mutex_lock (&ts_state->ring_buffer.mutex);
@@ -259,8 +279,7 @@ seek_data (GstTimeShiftSrc *self, guint64 offset)
   g_mutex_unlock (&ts_state->ring_buffer.mutex);
 
   if (found == 0) {
-    GST_WARNING_OBJECT (self,
-        "Could not find a suitable buffer to seek to.");
+    GST_WARNING_OBJECT (self, "Could not find a suitable buffer to seek to.");
   }
 
   return found > 0;
@@ -363,12 +382,11 @@ gst_timeshift_src_query (GstBaseSrc * src, GstQuery * query)
         g_mutex_lock (&self->sink->state->ring_buffer.mutex);
         if (self->sink->state->ring_buffer.count > 0) {
           GstBuffer *tail_buf =
-              self->sink->state->ring_buffer.
-              buffers[self->sink->state->ring_buffer.tail];
+              self->sink->state->ring_buffer.buffers[self->sink->
+              state->ring_buffer.tail];
           GstBuffer *head_buf =
               self->sink->state->ring_buffer.buffers[(self->sink->state->
-                  ring_buffer.head + RING_BUFFER_SIZE -
-                  1) % RING_BUFFER_SIZE];
+                  ring_buffer.head + RING_BUFFER_SIZE - 1) % RING_BUFFER_SIZE];
           if (tail_buf && GST_BUFFER_PTS_IS_VALID (tail_buf) && head_buf
               && GST_BUFFER_PTS_IS_VALID (head_buf)) {
             start = GST_BUFFER_PTS (tail_buf);
