@@ -23,18 +23,17 @@
 
 #include <gst/gst.h>
 
-#define RING_BUFFER_SIZE 3000   // 3000 buffers (GstBuffer)
-
 /**
  * structures
 */
 
 typedef struct _RingBuffer
 {
-  GstBuffer *buffers[RING_BUFFER_SIZE];
+  GstBuffer **buffers;
   guint head;
   guint tail;
   guint count;
+  guint size;
   GMutex mutex;
   GCond cond;
 } RingBuffer;
@@ -51,7 +50,7 @@ typedef struct _TimeShiftState
  * ring_buffer functions
  */
 
-void ring_buffer_init (RingBuffer * ring_buffer);
+void ring_buffer_init (RingBuffer * ring_buffer, guint size);
 void ring_buffer_destroy (RingBuffer * ring_buffer);
 void ring_buffer_push (TimeShiftState * ts_state, GstBuffer * buffer);
 GstBuffer *ring_buffer_read (TimeShiftState * ts_state,

@@ -21,14 +21,13 @@
 #include "gsttimeshift.h"
 
 void
-ring_buffer_init (RingBuffer * ring_buffer)
+ring_buffer_init (RingBuffer * ring_buffer, guint size)
 {
   ring_buffer->head = 0;
   ring_buffer->tail = 0;
   ring_buffer->count = 0;
-  for (guint i = 0; i < RING_BUFFER_SIZE; i++) {
-    ring_buffer->buffers[i] = NULL;
-  }
+  ring_buffer->size = size;
+  ring_buffer->buffers = g_new0 (GstBuffer *, size);
   g_mutex_init (&ring_buffer->mutex);
   g_cond_init (&ring_buffer->cond);
 }
@@ -37,12 +36,13 @@ void
 ring_buffer_destroy (RingBuffer * ring_buffer)
 {
   g_mutex_lock (&ring_buffer->mutex);
-  for (guint i = 0; i < RING_BUFFER_SIZE; i++) {
+  for (guint i = 0; i < ring_buffer->size; i++) {
     if (ring_buffer->buffers[i]) {
       gst_buffer_unref (ring_buffer->buffers[i]);
       ring_buffer->buffers[i] = NULL;
     }
   }
+  g_free (ring_buffer->buffers);
   g_mutex_unlock (&ring_buffer->mutex);
   g_mutex_clear (&ring_buffer->mutex);
   g_cond_clear (&ring_buffer->cond);
@@ -61,20 +61,20 @@ ring_buffer_push (TimeShiftState * ts_state, GstBuffer * buffer)
   ts_state->ring_buffer.buffers[ts_state->ring_buffer.head] =
       gst_buffer_ref (buffer);
   ts_state->ring_buffer.head =
-      (ts_state->ring_buffer.head + 1) % RING_BUFFER_SIZE;
+      (ts_state->ring_buffer.head + 1) % ts_state->ring_buffer.size;
 
-  if (ts_state->ring_buffer.count < RING_BUFFER_SIZE) {
+  if (ts_state->ring_buffer.count < ts_state->ring_buffer.size) {
     ts_state->ring_buffer.count++;
   } else {
     ts_state->ring_buffer.tail =
-        (ts_state->ring_buffer.tail + 1) % RING_BUFFER_SIZE;
+        (ts_state->ring_buffer.tail + 1) % ts_state->ring_buffer.size;
   }
   ts_state->total_buffers_written++;
 
   if (ts_state->ring_buffer.count > 1) {
     GstBuffer *head_buf =
         ts_state->ring_buffer.buffers[(ts_state->ring_buffer.head +
-            RING_BUFFER_SIZE - 1) % RING_BUFFER_SIZE];
+            ts_state->ring_buffer.size - 1) % ts_state->ring_buffer.size];
     GstBuffer *tail_buf =
         ts_state->ring_buffer.buffers[ts_state->ring_buffer.tail];
     if (GST_BUFFER_PTS_IS_VALID (head_buf) &&
@@ -103,7 +103,7 @@ ring_buffer_read (TimeShiftState * ts_state, guint64 absolute_position)
 
   guint relative_index = absolute_position - first_available_pos;
   guint actual_index =
-      (ts_state->ring_buffer.tail + relative_index) % RING_BUFFER_SIZE;
+      (ts_state->ring_buffer.tail + relative_index) % ts_state->ring_buffer.size;
   GstBuffer *buffer =
       gst_buffer_ref (ts_state->ring_buffer.buffers[actual_index]);
 

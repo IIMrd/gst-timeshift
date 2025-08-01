@@ -33,6 +33,7 @@ G_DECLARE_FINAL_TYPE (GstTimeShiftSink, gst_timeshift_sink, GST, TIMESHIFT_SINK,
        GstBaseSink parent;
 
        TimeShiftState *state;
+       guint buffer_size;
      };
 
      GType gst_timeshift_sink_get_type (void);

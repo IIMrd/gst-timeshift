@@ -234,7 +234,7 @@ seek_data (GstTimeShiftSrc * self, guint64 offset)
       ts_state->ring_buffer.buffers[ts_state->ring_buffer.tail];
   GstBuffer *head_buf =
       ts_state->ring_buffer.buffers[(ts_state->ring_buffer.head +
-          RING_BUFFER_SIZE - 1) % RING_BUFFER_SIZE];
+          ts_state->ring_buffer.size - 1) % ts_state->ring_buffer.size];
 
   if (!tail_buf || !GST_BUFFER_PTS_IS_VALID (tail_buf) || !head_buf
       || !GST_BUFFER_PTS_IS_VALID (head_buf)) {
@@ -263,7 +263,8 @@ seek_data (GstTimeShiftSrc * self, guint64 offset)
   // Search backwards from the desired position to find the last 3 keyframes,
   // this should give the video decoder enough context, avoiding corruption
   for (gint i = ts_state->ring_buffer.count - 1; i >= 0; i--) {
-    guint actual_index = (ts_state->ring_buffer.tail + i) % RING_BUFFER_SIZE;
+    guint actual_index =
+        (ts_state->ring_buffer.tail + i) % ts_state->ring_buffer.size;
     GstBuffer *buffer = ts_state->ring_buffer.buffers[actual_index];
     if (buffer && GST_BUFFER_PTS_IS_VALID (buffer) &&
         GST_BUFFER_PTS (buffer) <= offset &&
@@ -386,7 +387,8 @@ gst_timeshift_src_query (GstBaseSrc * src, GstQuery * query)
               state->ring_buffer.tail];
           GstBuffer *head_buf =
               self->sink->state->ring_buffer.buffers[(self->sink->state->
-                  ring_buffer.head + RING_BUFFER_SIZE - 1) % RING_BUFFER_SIZE];
+                  ring_buffer.head + self->sink->state->ring_buffer.size -
+                  1) % self->sink->state->ring_buffer.size];
           if (tail_buf && GST_BUFFER_PTS_IS_VALID (tail_buf) && head_buf
               && GST_BUFFER_PTS_IS_VALID (head_buf)) {
             start = GST_BUFFER_PTS (tail_buf);
