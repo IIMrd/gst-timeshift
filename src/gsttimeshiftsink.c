@@ -58,7 +58,6 @@ gst_timeshift_sink_dispose (GObject * object)
   GstTimeShiftSink *self = GST_TIMESHIFT_SINK (object);
 
   if (self->state) {
-    ring_buffer_destroy (&self->state->ring_buffer);
     g_free (self->state);
     self->state = NULL;
   }
