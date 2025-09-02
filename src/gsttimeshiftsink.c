@@ -3,6 +3,12 @@
  *  Copyright (C) 2025 Lluc Simó Margalef <lsimmar@upv.es>, Immersive
  *    Interactive Media (IIM) R&D group at Universitat Politècnica de València.
  *
+ *  This library has been developed with support by the following projects:
+ *  CIAICO/2022/025, from Conselleria de Innovación, Universidades, Ciencia y
+ *  Sociedad Digital of the GVA (DOGV 8919/05.10.2020); and grant
+ *  PID2021-126645OB-I00, funded by MICIU/AEI/10.13039/501100011033/ and by "ERDF
+ *  A way of making Europe".
+ *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
  *  License as published by the Free Software Foundation; either
